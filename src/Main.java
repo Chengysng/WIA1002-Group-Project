@@ -10,10 +10,12 @@ import managers.*;
 public class Main {
     public static void main(String[] args) {
         // Initialize managers from all members
-        RecordManager recordManager = new RecordManager(); // Member 2
-        // GateManager gateManager = new GateManager();     // Member 3 Not done yet
-        SlotManager slotManager = new SlotManager();     // Member 4
-        SearchManager searchManager = new SearchManager(); // Member 5
+        RecordManager recordManager = new RecordManager();         // Member 2
+        SlotManager slotManager = new SlotManager();               // Member 4
+        SearchManager searchManager = new SearchManager();         // Member 5
+        
+        // Member 3 now connects Member 2 and 4 for the Undo system
+        GateManager gateManager = new GateManager(slotManager, recordManager);
         
         Scanner scanner = new Scanner(System.in);
         boolean running = true;
@@ -36,20 +38,26 @@ public class Main {
 
                 switch (choice) {
                     case 1:
-                        System.out.print("Enter License Plate:");
+                        System.out.print("Enter License Plate: ");
                         String plate = scanner.nextLine();
-                        System.out.print("Enter Owner Name:");
+                        System.out.print("Enter Owner Name: ");
                         String name = scanner.nextLine();
                         
-                        // Core Data Flow logic
+                        // 1. Create the Vehicle object
                         Vehicle newVehicle = new Vehicle(plate, name, System.currentTimeMillis());
-                        recordManager.addRecord(newVehicle);
-                        searchManager.addVehicleRecord(newVehicle);
-                        slotManager.assignBestSlot();
-
-                        System.out.println("Vehicle" + plate + "has been registered successfully.");
+                        
+                        // 2. Add to waiting queue (Member 3 logic)
+                        gateManager.addVehicleToQueue(newVehicle);
+                        
+                        // 3. Process the entry (Member 3 triggers Member 2 & 4)
+                        Vehicle processed = gateManager.processNextArrival();
+                        
+                        // 4. Update the Search System (Member 5 logic)
+                        if (processed != null) {
+                            searchManager.addVehicleRecord(processed);
+                            System.out.println("Vehicle " + plate + " has been registered and parked.");
+                        }
                         break;
-
                     case 2:
                         System.out.print("Enter License Plate to Search: ");
                         String searchPlate = scanner.nextLine();
@@ -62,19 +70,18 @@ public class Main {
                         break;
 
                     case 3:
-                        // Trigger undo mechanism from Member 3
-
-                        // gateManager.undoLastAction();
-                        // @Undo 
-
-                        System.out.println("Undo operation executed.");
+                        // This triggers the stack-based reversal logic from Member 3 [cite: 50, 81]
+                        gateManager.undoLastAction();
+                        
+                        // Move the print statement BEFORE the break so it actually displays
+                        System.out.println("Undo operation executed."); 
                         break;
 
                     case 4:
                         System.out.println("Displaying all parking records...");
-                        // This would typically call Member 2's RecordManager logic
-                        // @Undo
-
+                        // Call Member 2's RecordManager to show the linked list data
+                        recordManager.displayAllRecords(); 
+                        
                         break;
 
                     case 5:
