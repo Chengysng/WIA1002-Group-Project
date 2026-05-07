@@ -1,102 +1,147 @@
 import java.util.Scanner;
 import models.Vehicle;
+import models.ParkingSlot;
 import managers.*;
 
 /**
- * Combine everyone's code
- * Not completely done
- * @author XU ZIMAO
+ * Combines everyone's code into a runnable console program.
+ *
+ * UPDATED (Sprint 1 fixes):
+ *   - Pre-loads 8 demo parking slots into the MinHeap at startup so the very
+ *     first arrival actually gets parked.
+ *   - Constructs HashMapManager and passes it (plus SearchManager) into the
+ *     refactored GateManager so all four storage structures stay in sync.
+ *   - Adds menu option 2: Process Exit (uses HashMap O(1) lookup).
+ *   - Adds menu option 4: Quick Status (HashMap O(1) yes/no parked check).
+ *   - Robust input handling — non-numeric and out-of-range inputs no longer
+ *     crash the program.
  */
 public class Main {
     public static void main(String[] args) {
-        // Initialize managers from all members
-        RecordManager recordManager = new RecordManager();         // Member 2
-        SlotManager slotManager = new SlotManager();               // Member 4
-        SearchManager searchManager = new SearchManager();         // Member 5
-        
-        // Member 3 now connects Member 2 and 4 for the Undo system
-        GateManager gateManager = new GateManager(slotManager, recordManager);
-        
+        // ---- Initialise managers ----
+        RecordManager   recordManager   = new RecordManager();    // LinkedList
+        SlotManager     slotManager     = new SlotManager();      // MinHeap
+        SearchManager   searchManager   = new SearchManager();    // BST
+        HashMapManager  hashMapManager  = new HashMapManager(53); // HashMap (size = small prime)
+
+        GateManager gateManager = new GateManager(
+                slotManager, recordManager, searchManager, hashMapManager);
+
+        // ---- Pre-load 8 demo parking slots so the heap is not empty ----
+        ParkingSlot[] demoSlots = {
+            new ParkingSlot("S01",  8),
+            new ParkingSlot("S02", 10),
+            new ParkingSlot("S03", 18),
+            new ParkingSlot("S04", 15),
+            new ParkingSlot("S05", 16),
+            new ParkingSlot("S06", 12),
+            new ParkingSlot("S07", 20),
+            new ParkingSlot("S08", 14)
+        };
+        slotManager.loadSlot(demoSlots);
+        System.out.println("Loaded " + demoSlots.length + " parking slots into the available heap.");
+
         Scanner scanner = new Scanner(System.in);
         boolean running = true;
 
-        System.out.println("=== Smart Parking Management System (Sprint 1) ===");
+        System.out.println("\n=== Smart Parking Management System ===");
 
         while (running) {
-            // Display Menu
             System.out.println("\n--- MAIN MENU ---");
             System.out.println("1. Process Entry");
-            System.out.println("2. Find Vehicle");
-            System.out.println("3. Undo Last Action");
-            System.out.println("4. Show All Records");
-            System.out.println("5. Exit");
-            System.out.print("Select an option [1-5]: ");
+            System.out.println("2. Process Exit");
+            System.out.println("3. Find Vehicle (BST search)");
+            System.out.println("4. Quick Status (HashMap O(1) lookup)");
+            System.out.println("5. Show All Records");
+            System.out.println("6. Undo Last Action");
+            System.out.println("7. Exit System");
+            System.out.print("Select an option [1-7]: ");
 
             try {
-                // Prevent crashes from non-integer input using try/catch
                 int choice = Integer.parseInt(scanner.nextLine());
 
                 switch (choice) {
-                    case 1:
+                    case 1: {
                         System.out.print("Enter License Plate: ");
-                        String plate = scanner.nextLine();
+                        String plate = scanner.nextLine().trim();
                         System.out.print("Enter Owner Name: ");
-                        String name = scanner.nextLine();
-                        
-                        // 1. Create the Vehicle object
+                        String name = scanner.nextLine().trim();
+
+                        if (plate.isEmpty() || name.isEmpty()) {
+                            System.out.println("Error: license plate and owner name cannot be empty.");
+                            break;
+                        }
+
                         Vehicle newVehicle = new Vehicle(plate, name, System.currentTimeMillis());
-                        
-                        // 2. Add to waiting queue (Member 3 logic)
                         gateManager.addVehicleToQueue(newVehicle);
-                        
-                        // 3. Process the entry (Member 3 triggers Member 2 & 4)
                         Vehicle processed = gateManager.processNextArrival();
-                        
-                        // 4. Update the Search System (Member 5 logic)
+
                         if (processed != null) {
-                            searchManager.addVehicleRecord(processed);
                             System.out.println("Vehicle " + plate + " has been registered and parked.");
+                            System.out.println("  -> " + processed);
                         }
                         break;
-                    case 2:
-                        System.out.print("Enter License Plate to Search: ");
-                        String searchPlate = scanner.nextLine();
+                    }
+
+                    case 2: {
+                        System.out.print("Enter License Plate to exit: ");
+                        String exitPlate = scanner.nextLine().trim();
+                        // O(1) HashMap lookup to find the vehicle quickly
+                        Vehicle exiting = hashMapManager.lookup(exitPlate);
+                        if (exiting != null) {
+                            gateManager.processExit(exiting);
+                        } else {
+                            System.out.println("Error: No parked vehicle found with plate " + exitPlate);
+                        }
+                        break;
+                    }
+
+                    case 3: {
+                        System.out.print("Enter License Plate to search: ");
+                        String searchPlate = scanner.nextLine().trim();
                         Vehicle found = searchManager.findVehicle(searchPlate);
                         if (found != null) {
-                            System.out.println("Vehicle Found:" + found.getOwnerName() + "(Entry Time:" + found.getEntryTime() + ")");
+                            System.out.println("Vehicle found: " + found);
                         } else {
-                            System.out.println("Error: Vehicle not found.");
+                            System.out.println("Error: vehicle not found.");
                         }
                         break;
+                    }
 
-                    case 3:
-                        // This triggers the stack-based reversal logic from Member 3 [cite: 50, 81]
-                        gateManager.undoLastAction();
-                        
-                        // Move the print statement BEFORE the break so it actually displays
-                        System.out.println("Undo operation executed."); 
+                    case 4: {
+                        System.out.print("Enter License Plate to check: ");
+                        String statusPlate = scanner.nextLine().trim();
+                        if (hashMapManager.isParked(statusPlate)) {
+                            Vehicle v = hashMapManager.lookup(statusPlate);
+                            System.out.println("Status: PARKED");
+                            System.out.println("  -> " + v);
+                        } else {
+                            System.out.println("Status: NOT PARKED (or already exited)");
+                        }
                         break;
-
-                    case 4:
-                        System.out.println("Displaying all parking records...");
-                        // Call Member 2's RecordManager to show the linked list data
-                        recordManager.displayAllRecords(); 
-                        
-                        break;
+                    }
 
                     case 5:
+                        System.out.println("Displaying all parking records...");
+                        recordManager.displayAllRecords();
+                        break;
+
+                    case 6:
+                        gateManager.undoLastAction();
+                        break;
+
+                    case 7:
                         running = false;
                         System.out.println("System shutting down. Goodbye!");
                         break;
 
                     default:
-                        System.out.println("Invalid option! Please enter a number between 1 and 5.");
+                        System.out.println("Invalid option! Please enter a number between 1 and 7.");
                 }
             } catch (NumberFormatException e) {
-                // Handling non-numeric input[cite: 1, 2]
                 System.out.println("Input Error: Please enter a valid menu number.");
             } catch (Exception e) {
-                System.out.println("An unexpected error occurred:" + e.getMessage());
+                System.out.println("An unexpected error occurred: " + e.getMessage());
             }
         }
         scanner.close();

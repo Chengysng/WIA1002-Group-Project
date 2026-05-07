@@ -55,12 +55,31 @@ public class SlotManager {
      * @param slot
      */
     public void releaseSlot(ParkingSlot slot) {
+        if (slot == null) return;
         slot.setOccupied(false);
         heap.offer(slot);
         System.out.println("Slot " + slot.getSlotID() + " is now available again.");
     }
 
+    public void reclaimSlot(ParkingSlot slot) {
+        if (slot == null) return;
+        boolean removed = heap.remove(slot);
+        if (removed) {
+            slot.setOccupied(true);
+            System.out.println("Slot " + slot.getSlotID() + " has been reclaimed (now OCCUPIED).");
+        } else {
+            // Slot wasn't in the heap — somebody else already took it. Mark it
+            // occupied anyway so internal state stays consistent.
+            slot.setOccupied(true);
+            System.out.println("Slot " + slot.getSlotID() + " was not in the available heap; marked OCCUPIED.");
+        }
+    }
+
     public boolean hasAvailableSlots() {
         return !heap.isEmpty();
+    }
+
+    public int availableSlotCount() {
+        return heap.size();
     }
 }

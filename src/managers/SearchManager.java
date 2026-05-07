@@ -4,7 +4,8 @@ import datastructures.CustomBST;
 import models.Vehicle;
 
 /**
- * Implement BST Serch
+ * Implements BST-based search for vehicles by license plate.
+ *
  * @author XU ZIMAO
  */
 public class SearchManager {
@@ -20,5 +21,9 @@ public class SearchManager {
 
     public Vehicle findVehicle(String licensePlate) {
         return bst.search(licensePlate);
+    }
+
+    public boolean removeVehicle(String licensePlate) {
+        return bst.delete(licensePlate);
     }
 }

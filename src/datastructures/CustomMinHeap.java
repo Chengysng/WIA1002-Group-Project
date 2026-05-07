@@ -87,12 +87,39 @@ public class CustomMinHeap {
         return heap[0];
     }
 
-    /**
-     * Check if new node is smaller than parent node then move it up the tree or
-     * not.
-     *
-     * @param i
-     */
+    public boolean remove(ParkingSlot target) {
+        if (target == null || size == 0) {
+            return false;
+        }
+        int idx = -1;
+        for (int i = 0; i < size; i++) {
+            if (heap[i].getSlotID().equals(target.getSlotID())) {
+                idx = i;
+                break;
+            }
+        }
+        if (idx == -1) {
+            return false;
+        }
+
+        // Replace target with the last element
+        heap[idx] = heap[size - 1];
+        heap[size - 1] = null;
+        size--;
+
+        // Re-heapify: the replacement could be smaller than its parent (bubble up)
+        // OR larger than its children (sink down). Try both — only one will move.
+        if (idx < size) {
+            int parent = (idx - 1) / 2;
+            if (idx > 0 && heap[idx].getDistanceFromGate() < heap[parent].getDistanceFromGate()) {
+                bubbleUp(idx);
+            } else {
+                sinkDown(idx);
+            }
+        }
+        return true;
+    }
+
     private void bubbleUp(int i) {
         while (i > 0) {
             int parent = (i - 1) / 2;
