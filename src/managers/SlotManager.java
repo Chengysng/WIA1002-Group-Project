@@ -5,6 +5,7 @@
 package managers;
 
 import datastructures.CustomMinHeap;
+import datastructures.CustomMinHeap.Entry;
 import models.ParkingSlot;
 
 /**
@@ -16,6 +17,7 @@ import models.ParkingSlot;
 public class SlotManager {
 
     private CustomMinHeap heap;
+    private ParkingSlot[] allSlots;
 
     public SlotManager() {
         heap = new CustomMinHeap();
@@ -27,8 +29,9 @@ public class SlotManager {
      * @param parkingSlot
      */
     public void loadSlot(ParkingSlot[] parkingSlot) {
+        this.allSlots = parkingSlot;
         for (ParkingSlot slot : parkingSlot) {
-            heap.offer(slot);
+            heap.offer(slot.getSlotID(), slot.getDistanceFromGate());
         }
     }
 
@@ -38,15 +41,16 @@ public class SlotManager {
      * @return best parking slot (lowest distanceFromGate)
      */
     public ParkingSlot assignBestSlot() {
-        ParkingSlot best = heap.poll();
+        Entry best = heap.poll();
         if (best == null) {
             System.out.println("No available parking slots.");
             return null;
         }
-        best.setOccupied(true);
-        System.out.println("Assigned slot: " + best.getSlotID()
-                + " (distance: " + best.getDistanceFromGate() + "m)");
-        return best;
+        ParkingSlot min = findSlotByID(best.key);
+        min.setOccupied(true);
+        System.out.println("Assigned slot: " + min.getSlotID()
+                + " (distance: " + min.getDistanceFromGate() + "m)");
+        return min;
     }
 
     /**
@@ -57,13 +61,16 @@ public class SlotManager {
     public void releaseSlot(ParkingSlot slot) {
         if (slot == null) return;
         slot.setOccupied(false);
-        heap.offer(slot);
+        heap.offer(slot.getSlotID(), slot.getDistanceFromGate());
         System.out.println("Slot " + slot.getSlotID() + " is now available again.");
     }
 
     public void reclaimSlot(ParkingSlot slot) {
-        if (slot == null) return;
-        boolean removed = heap.remove(slot);
+        if (slot == null) {
+            return;
+        }
+        Entry target = new Entry(slot.getSlotID(), slot.getDistanceFromGate());
+        boolean removed = heap.remove(target);
         if (removed) {
             slot.setOccupied(true);
             System.out.println("Slot " + slot.getSlotID() + " has been reclaimed (now OCCUPIED).");
@@ -81,5 +88,14 @@ public class SlotManager {
 
     public int availableSlotCount() {
         return heap.size();
+    }
+    
+    private ParkingSlot findSlotByID(String slotID) {
+        for (ParkingSlot s : allSlots) {
+            if (s.getSlotID().equals(slotID)) {
+                return s;
+            }
+        }
+        return null;
     }
 }

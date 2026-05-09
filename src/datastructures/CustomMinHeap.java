@@ -5,7 +5,6 @@
 package datastructures;
 
 import java.util.Arrays;
-import models.ParkingSlot;
 
 /**
  * This class is used to implement a priority queue that stores parking slots
@@ -17,12 +16,35 @@ import models.ParkingSlot;
  */
 public class CustomMinHeap {
 
-    private ParkingSlot[] heap;
+    /**
+     * This static class is used to replace the use of Entry in this class
+     * and instead use a Comparable Object with fields key and distance.
+     * 
+     * @author Yim Zi Hao
+     */
+    public static class Entry implements Comparable<Entry> {
+
+        public String key;
+        public int distance;
+
+        public Entry(String key, int distance) {
+            this.key = key;
+            this.distance = distance;
+        }
+        
+        @Override
+        public int compareTo(Entry o) {
+            return Integer.compare(this.distance, o.distance);
+        }
+
+    }
+
+    private Entry[] heap;
     private int size;
     public static final int DEFAULT_CAPACITY = 11;
 
     public CustomMinHeap() {
-        heap = new ParkingSlot[DEFAULT_CAPACITY];
+        heap = new Entry[DEFAULT_CAPACITY];
         this.size = 0;
     }
 
@@ -47,13 +69,14 @@ public class CustomMinHeap {
     /**
      * Adds a parking slot into heap.
      *
-     * @param newParkingSlot
+     * @param key
+     * @param distance
      */
-    public void offer(ParkingSlot newParkingSlot) {
+    public void offer(String key, int distance) {
         if (size >= heap.length) {
             heap = Arrays.copyOf(heap, heap.length * 2);
         }
-        heap[size] = newParkingSlot;
+        heap[size] = new Entry(key, distance);
         bubbleUp(size);
         size++;
     }
@@ -63,11 +86,11 @@ public class CustomMinHeap {
      *
      * @return root of tree / parking slot with lowest distance from gate
      */
-    public ParkingSlot poll() {
+    public Entry poll() {
         if (isEmpty()) {
             return null;
         }
-        ParkingSlot min = heap[0];
+        Entry min = heap[0];
         heap[0] = heap[size - 1];
         heap[size - 1] = null;
         size--;
@@ -80,20 +103,20 @@ public class CustomMinHeap {
      *
      * @return heap[0] / parking slot with the lowest distanceFromGate
      */
-    public ParkingSlot peek() {
+    public Entry peek() {
         if (isEmpty()) {
             return null;
         }
         return heap[0];
     }
 
-    public boolean remove(ParkingSlot target) {
+    public boolean remove(Entry target) {
         if (target == null || size == 0) {
             return false;
         }
         int idx = -1;
         for (int i = 0; i < size; i++) {
-            if (heap[i].getSlotID().equals(target.getSlotID())) {
+            if (heap[i].key.equals(target.key)) {
                 idx = i;
                 break;
             }
@@ -111,7 +134,7 @@ public class CustomMinHeap {
         // OR larger than its children (sink down). Try both — only one will move.
         if (idx < size) {
             int parent = (idx - 1) / 2;
-            if (idx > 0 && heap[idx].getDistanceFromGate() < heap[parent].getDistanceFromGate()) {
+            if (idx > 0 && heap[idx].distance < heap[parent].distance) {
                 bubbleUp(idx);
             } else {
                 sinkDown(idx);
@@ -123,7 +146,7 @@ public class CustomMinHeap {
     private void bubbleUp(int i) {
         while (i > 0) {
             int parent = (i - 1) / 2;
-            if (heap[i].getDistanceFromGate() < heap[parent].getDistanceFromGate()) {
+            if (heap[i].distance < heap[parent].distance) {
                 swap(i, parent);
                 i = parent;
             } else {
@@ -142,10 +165,10 @@ public class CustomMinHeap {
             int smallest = i;
             int left = 2 * i + 1;
             int right = 2 * i + 2;
-            if (left < size && heap[left].getDistanceFromGate() < heap[smallest].getDistanceFromGate()) {
+            if (left < size && heap[left].distance < heap[smallest].distance) {
                 smallest = left;
             }
-            if (right < size && heap[right].getDistanceFromGate() < heap[smallest].getDistanceFromGate()) {
+            if (right < size && heap[right].distance < heap[smallest].distance) {
                 smallest = right;
             }
             if (smallest == i) {
@@ -164,7 +187,7 @@ public class CustomMinHeap {
      * @param j
      */
     private void swap(int i, int j) {
-        ParkingSlot temp = heap[i];
+        Entry temp = heap[i];
         heap[i] = heap[j];
         heap[j] = temp;
     }
