@@ -20,6 +20,7 @@ public class CustomAVL {
     }
 
     private Node root;
+    private boolean lastDeleteSucceeded; // tracks whether the most recent delete() actually found the node
 
     // --- Core Balance Logic [cite: 132, 133, 134] ---
 
@@ -127,8 +128,10 @@ public class CustomAVL {
         return null;
     }
 
-    public void delete(String licensePlate) {
+    public boolean delete(String licensePlate) {
+        lastDeleteSucceeded = false;
         root = deleteRecursive(root, licensePlate);
+        return lastDeleteSucceeded;
     }
 
     private Node deleteRecursive(Node node, String licensePlate) {
@@ -141,7 +144,8 @@ public class CustomAVL {
         } else if (cmp > 0) {
             node.right = deleteRecursive(node.right, licensePlate);
         } else {
-            // Node found
+            // Node found — mark success before the actual removal
+            lastDeleteSucceeded = true;
             if (node.left == null || node.right == null) {
                 node = (node.left == null) ? node.right : node.left;
             } else {
