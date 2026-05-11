@@ -31,6 +31,15 @@ public class GateManager {
     private final SearchManager searchManager;
     private final HashMapManager hashMapManager;
 
+    // Optional stats hook — wired in by Main.java after construction so the
+    // existing 4-arg constructor stays unchanged. Null-safe everywhere it's used.
+    private StatsManager statsManager;
+
+    /** Wires the StatsManager so entry/exit are tracked. Safe to call once at startup. */
+    public void setStatsManager(StatsManager statsManager) {
+        this.statsManager = statsManager;
+    }
+
     /**
      * Records one reversible operation. Carries enough state that undo can
      * fully reverse the operation without re-querying any other manager.
@@ -87,6 +96,7 @@ public class GateManager {
         registerInAllStores(nextVehicle);
 
         historyStack.push(new Action("ENTER", nextVehicle, assigned));
+        if (statsManager != null) statsManager.recordEntry(nextVehicle);
         System.out.println("Processed arrival for: Vehicle[" + nextVehicle.getLicensePlate() + "]");
         return nextVehicle;
     }
@@ -114,6 +124,7 @@ public class GateManager {
         forgetFromAllStores(v.getLicensePlate());
 
         historyStack.push(new Action("EXIT", v, slot));
+        if (statsManager != null) statsManager.recordExit(v);
         System.out.println("Processed exit for: Vehicle[" + v.getLicensePlate() + "]");
     }
 

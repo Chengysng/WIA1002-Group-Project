@@ -1,32 +1,37 @@
 /**
  * Author: Ammar Kapadia
- * Description: Custom HashMap mapping a String (license plate) to a Vehicle object.
- * Uses an array of linked list nodes for basic collision handling.
+ * Description: Generic CustomHashMap mapping a String key to any value type V.
+ *              Separate-chaining collision handling using a linked list per bucket.
+ *              Generalised in Sprint 2 (was String -> Vehicle in Sprint 1) so other
+ *              modules can reuse it (StatsManager uses CustomHashMap<Integer> for
+ *              the hour counter; CustomGraph could use CustomHashMap<EdgeLinkedList>;
+ *              DijkstraSolver could use CustomHashMap<Integer> for distance maps).
  */
 package datastructures;
-import models.Vehicle;
 
-public class CustomHashMap {
-    // Basic inner class to represent a node in the linked list
-    private class HashNode {
-        private String key;
-        private Vehicle value;
-        private HashNode next;
+public class CustomHashMap<V> {
 
-        public HashNode(String key, Vehicle value) {
+    private static class HashNode<V> {
+        String key;
+        V value;
+        HashNode<V> next;
+
+        HashNode(String key, V value) {
             this.key = key;
             this.value = value;
             this.next = null;
         }
     }
 
-    private HashNode[] table;
+    private HashNode<V>[] table;
     private int tableSize;
+    private int size;  // number of entries currently in the map
 
-    // Constructor to initialize the array with a specific size
+    @SuppressWarnings("unchecked")
     public CustomHashMap(int tableSize) {
         this.tableSize = tableSize;
-        this.table = new HashNode[tableSize];
+        this.table = (HashNode<V>[]) new HashNode[tableSize];
+        this.size = 0;
     }
 
     /**
@@ -38,16 +43,13 @@ public class CustomHashMap {
     }
 
     /**
-     * Inserts or updates a Vehicle record.
+     * Inserts or updates a value. If the key already exists, the value is
+     * overwritten and size is unchanged.
      */
-    public void put(String key, Vehicle value) {
-        // Basic safety check
-        if (key == null) {
-            return;
-        }
+    public void put(String key, V value) {
+        if (key == null) return;
         int index = hashFunction(key);
-        HashNode head = table[index];
-        HashNode current = head;
+        HashNode<V> current = table[index];
 
         // Update path: key already in chain
         while (current != null) {
@@ -59,20 +61,19 @@ public class CustomHashMap {
         }
 
         // Insert path: prepend new node to the chain
-        HashNode newNode = new HashNode(key, value);
-        newNode.next = head;
+        HashNode<V> newNode = new HashNode<>(key, value);
+        newNode.next = table[index];
         table[index] = newNode;
+        size++;
     }
 
     /**
-     * Retrieves a Vehicle in O(1) average time complexity based on its license plate.
+     * Retrieves a value in O(1) average time.
      */
-    public Vehicle get(String key) {
-        if (key == null) {
-            return null;
-        }
+    public V get(String key) {
+        if (key == null) return null;
         int index = hashFunction(key);
-        HashNode current = table[index];
+        HashNode<V> current = table[index];
 
         while (current != null) {
             if (current.key.equals(key)) {
@@ -83,22 +84,23 @@ public class CustomHashMap {
         return null;
     }
 
-    public Vehicle remove(String key) {
-        if (key == null) {
-            return null;
-        }
+    /**
+     * Removes and returns the value for the given key, or null if absent.
+     */
+    public V remove(String key) {
+        if (key == null) return null;
         int index = hashFunction(key);
-        HashNode current = table[index];
-        HashNode prev = null;
+        HashNode<V> current = table[index];
+        HashNode<V> prev = null;
 
         while (current != null) {
             if (current.key.equals(key)) {
                 if (prev == null) {
-                    // Removing the head of the chain
                     table[index] = current.next;
                 } else {
                     prev.next = current.next;
                 }
+                size--;
                 return current.value;
             }
             prev = current;
@@ -109,5 +111,24 @@ public class CustomHashMap {
 
     public boolean containsKey(String key) {
         return get(key) != null;
+    }
+
+    /** Number of entries currently in the map. O(1). */
+    public int size() {
+        return size;
+    }
+
+    /** Returns every key currently in the map. Used for iteration (e.g. peak-hour search). */
+    public String[] keys() {
+        String[] result = new String[size];
+        int idx = 0;
+        for (int i = 0; i < tableSize; i++) {
+            HashNode<V> current = table[i];
+            while (current != null) {
+                result[idx++] = current.key;
+                current = current.next;
+            }
+        }
+        return result;
     }
 }
