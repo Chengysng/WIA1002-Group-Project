@@ -180,14 +180,14 @@ public class GateManager {
 
             if (lastAction.getType().equals("ENTER")) {
                 System.out.println("Undoing ENTER for: " + plate);
-                
+
                 if (lastAction.getSlot() != null) {
                     slotManager.releaseSlot(lastAction.getSlot());
                 }
-                
-             
+
                 forgetFromAllStores(plate);
-                
+                lastAction.getVehicle().setAssignedSlot(null);  // clear stale slot reference
+
                 System.out.println("Undo Successful.");
                 return true;
 
@@ -203,11 +203,13 @@ public class GateManager {
                     System.out.println("Undo Successful.");
                     return true;
 
-                } catch (Exception e) { 
-                    System.out.println("Partial Undo Warning: Cannot revert EXIT for [" + plate + 
-                                       "] because slot " + lastAction.getSlot().getSlotID() + 
+                } catch (Exception e) {
+                    String slotID = (lastAction.getSlot() != null)
+                            ? lastAction.getSlot().getSlotID() : "(unknown)";
+                    System.out.println("Partial Undo Warning: Cannot revert EXIT for [" + plate +
+                                       "] because slot " + slotID +
                                        " is currently occupied.");
-                    return false; 
+                    return false;
                 }
             }
         } catch (EmptyStackException e) {
